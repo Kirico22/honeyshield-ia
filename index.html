@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HoneyShield AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--surface:#0f1628;--panel:#111d35;--border:#1e3a5f;
+  --accent:#00d4ff;--accent2:#00ff88;--warn:#ffa500;--danger:#ff2d55;
+  --text:#c8d8f0;--muted:#5a7a9a;--purple:#7c3aed;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;overflow:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+/* LAYOUT */
+.app{display:flex;height:100vh;flex-direction:column}
+.titlebar{height:32px;background:#060a14;display:flex;align-items:center;padding:0 16px;-webkit-app-region:drag;flex-shrink:0;border-bottom:1px solid var(--border)}
+.titlebar-title{font-size:12px;color:var(--muted);letter-spacing:2px;font-family:'Share Tech Mono',monospace}
+.titlebar-dot{width:8px;height:8px;border-radius:50%;margin-right:6px}
+.td1{background:#ff5f56}.td2{background:#ffbd2e}.td3{background:#27c93f}
+.titlebar-dots{display:flex;gap:6px;margin-right:16px;-webkit-app-region:no-drag}
+.body{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:#060a14;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;padding:16px 0}
+.logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.logo-title{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:2px}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px;font-family:'Share Tech Mono',monospace}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;border-left:3px solid transparent;transition:all .2s;font-size:14px;font-weight:500;letter-spacing:.5px}
+.nav-item:hover{background:rgba(0,212,255,.05);color:var(--accent)}
+.nav-item.active{border-color:var(--accent);background:rgba(0,212,255,.08);color:var(--accent)}
+.nav-icon{width:18px;text-align:center;font-size:14px}
+.nav-section{padding:12px 20px 4px;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border)}
+.status-pill{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--accent2)}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--accent2);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.4)}50%{box-shadow:0 0 0 6px rgba(0,255,136,0)}}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.active{display:block}
+
+/* DASHBOARD */
+.page-header{margin-bottom:24px}
+.page-title{font-size:24px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.page-sub{font-size:13px;color:var(--muted);margin-top:4px;font-family:'Share Tech Mono',monospace}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.stat-val{font-size:28px;font-weight:700;font-family:'Share Tech Mono',monospace}
+.stat-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.stat-trend{font-size:11px;margin-top:6px}
+.c-green{color:var(--accent2)}.c-red{color:var(--danger)}.c-blue{color:var(--accent)}.c-orange{color:var(--warn)}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-title{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.dot{width:6px;height:6px;border-radius:50%}
+.dot-g{background:var(--accent2);animation:blink 1.5s infinite}
+.dot-o{background:var(--warn);animation:blink 2s infinite}
+.dot-r{background:var(--danger);animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* HONEYPOTS GRID */
+.hp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hp-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .2s}
+.hp-card:hover{transform:scale(1.03)}
+.hp-card.active{border-color:var(--warn);background:#1a1400}
+.hp-card.compromised{border-color:var(--danger);background:#1a0010;animation:pulsered 1s infinite}
+.hp-card.safe{border-color:var(--accent2);background:#001a0a}
+@keyframes pulsered{0%,100%{box-shadow:0 0 0 0 rgba(255,45,85,.3)}50%{box-shadow:0 0 0 8px rgba(255,45,85,0)}}
+.hp-icon{font-size:22px;margin-bottom:6px}
+.hp-name{font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--muted)}
+.hp-st{font-size:10px;font-weight:700;margin-top:4px}
+.hp-card.active .hp-st{color:var(--warn)}
+.hp-card.compromised .hp-st{color:var(--danger)}
+.hp-card.safe .hp-st{color:var(--accent2)}
+
+/* THREAT LIST */
+.threat-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+.threat-item{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:6px;padding:8px 10px;border-left:3px solid transparent;animation:slidein .3s}
+@keyframes slidein{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.threat-item.high{border-color:var(--danger)}
+.threat-item.med{border-color:var(--warn)}
+.threat-item.low{border-color:var(--accent)}
+.tbadge{font-size:9px;padding:2px 6px;border-radius:4px;font-family:'Share Tech Mono',monospace;font-weight:700;white-space:nowrap}
+.b-high{background:rgba(255,45,85,.2);color:var(--danger)}
+.b-med{background:rgba(255,165,0,.2);color:var(--warn)}
+.b-low{background:rgba(0,212,255,.2);color:var(--accent)}
+.tinfo{flex:1;min-width:0}
+.ttype{font-size:13px;font-weight:600}
+.tsrc{font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ttime{font-size:10px;color:var(--muted);white-space:nowrap}
+.taction{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;white-space:nowrap}
+.act-trap{background:rgba(255,165,0,.15);color:var(--warn);border:1px solid rgba(255,165,0,.3)}
+.act-block{background:rgba(255,45,85,.15);color:var(--danger);border:1px solid rgba(255,45,85,.3)}
+.act-mon{background:rgba(0,212,255,.15);color:var(--accent);border:1px solid rgba(0,212,255,.3)}
+
+/* TERMINAL */
+.terminal{background:#050810;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'Share Tech Mono',monospace;font-size:12px;height:160px;overflow-y:auto;margin-bottom:14px}
+.tl{margin-bottom:3px;line-height:1.5}
+.tok{color:var(--accent2)}.twarn{color:var(--warn)}.terr{color:var(--danger)}.tinfo{color:var(--accent)}.tmuted{color:var(--muted)}
+.tcursor{display:inline-block;width:8px;height:13px;background:var(--accent2);animation:blink 1s infinite;vertical-align:middle}
+
+/* CIA SECTION */
+.cia-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.cia-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center}
+.cia-icon{font-size:28px;margin-bottom:8px}
+.cia-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.cia-pct{font-size:32px;font-weight:700;font-family:'Share Tech Mono',monospace;margin-bottom:8px}
+.bar{height:6px;background:var(--panel);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.fill-g{background:var(--accent2)}.fill-o{background:var(--warn)}.fill-b{background:var(--accent)}
+
+/* CONTROLS */
+.ctrl-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.btn{padding:9px 18px;border-radius:7px;border:1px solid;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.btn-b{background:rgba(0,212,255,.1);border-color:var(--accent);color:var(--accent)}
+.btn-b:hover{background:rgba(0,212,255,.22);transform:translateY(-1px)}
+.btn-r{background:rgba(255,45,85,.1);border-color:var(--danger);color:var(--danger)}
+.btn-r:hover{background:rgba(255,45,85,.22);transform:translateY(-1px)}
+.btn-g{background:rgba(0,255,136,.1);border-color:var(--accent2);color:var(--accent2)}
+.btn-g:hover{background:rgba(0,255,136,.22);transform:translateY(-1px)}
+.btn-p{background:rgba(124,58,237,.1);border-color:var(--purple);color:#a78bfa}
+.btn-p:hover{background:rgba(124,58,237,.22);transform:translateY(-1px)}
+
+/* SETTINGS PAGE */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.setting-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px}
+.setting-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.setting-desc{font-size:12px;color:var(--muted);margin-bottom:14px}
+.toggle{display:flex;align-items:center;justify-content:space-between}
+.toggle-label{font-size:13px}
+.switch{width:42px;height:22px;background:var(--border);border-radius:11px;position:relative;cursor:pointer;transition:.3s}
+.switch.on{background:var(--accent2)}
+.switch::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:2px;left:2px;transition:.3s}
+.switch.on::after{left:22px}
+.select{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;width:100%}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ABOUT PAGE */
+.about-hero{text-align:center;padding:40px 20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+.about-logo{font-size:48px;margin-bottom:12px}
+.about-name{font-size:32px;font-weight:700;color:var(--accent);letter-spacing:3px}
+.about-ver{font-size:13px;color:var(--muted);margin-top:6px;font-family:'Share Tech Mono',monospace}
+.about-desc{font-size:15px;color:var(--text);max-width:500px;margin:16px auto 0;line-height:1.6}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.feature-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px}
+.feat-icon{font-size:24px;margin-bottom:8px}
+.feat-title{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--accent)}
+.feat-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* LOG PAGE */
+.log-filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:12px;cursor:pointer;transition:.2s}
+.filter-btn.active,.filter-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.08)}
+.log-table{width:100%;border-collapse:collapse;font-size:13px}
+.log-table th{text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.log-table td{padding:8px 12px;border-bottom:1px solid rgba(30,58,95,.4);font-family:'Share Tech Mono',monospace;font-size:12px}
+.log-table tr:hover td{background:rgba(0,212,255,.03)}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="titlebar-dots">
+      <div class="titlebar-dot td1"></div>
+      <div class="titlebar-dot td2"></div>
+      <div class="titlebar-dot td3"></div>
+    </div>
+    <span class="titlebar-title">&#9670; HONEYSHIELD AI — SISTEMA DE DEFENSA ACTIVA</span>
+  </div>
+
+  <div class="body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">
+        <div class="logo-title">&#9670; HONEY<br>SHIELD</div>
+        <div class="logo-sub">AI SECURITY v1.0</div>
+      </div>
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">&#9776;</span>Dashboard</div>
+      <div class="nav-item" onclick="nav('honeypots')"><span class="nav-icon">&#128268;</span>Señuelos</div>
+      <div class="nav-item" onclick="nav('threats')"><span class="nav-icon">&#9888;</span>Amenazas</div>
+      <div class="nav-item" onclick="nav('cia')"><span class="nav-icon">&#128737;</span>Protección CIA</div>
+      <div class="nav-section">Sistema</div>
+      <div class="nav-item" onclick="nav('logs')"><span class="nav-icon">&#128196;</span>Registros</div>
+      <div class="nav-item" onclick="nav('settings')"><span class="nav-icon">&#9881;</span>Configuración</div>
+      <div class="nav-item" onclick="nav('about')"><span class="nav-icon">&#8505;</span>Acerca de</div>
+      <div class="sidebar-footer">
+        <div class="status-pill"><div class="pulse"></div><span>Protección activa</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'Share Tech Mono',monospace" id="clock"></div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div class="page-title">Dashboard principal</div>
+          <div class="page-sub" id="dash-time">Última actualización: --</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-val c-green" id="s-trapped">0</div><div class="stat-lbl">Malware atrapado</div><div class="stat-trend c-green">&#9650; Señuelos activos</div></div>
+          <div class="stat-card"><div class="stat-val c-red" id="s-blocked">0</div><div class="stat-lbl">Ataques bloqueados</div><div class="stat-trend c-red">&#9650; Protección en tiempo real</div></div>
+          <div class="stat-card"><div class="stat-val c-orange" id="s-active">3</div><div class="stat-lbl">Amenazas activas</div><div class="stat-trend c-orange">&#9660; Analizando...</div></div>
+          <div class="stat-card"><div class="stat-val c-blue" id="s-hp">6</div><div class="stat-lbl">Señuelos activos</div><div class="stat-trend c-blue">&#9650; Red perimetral</div></div>
+        </div>
+        <div class="ctrl-row">
+          <button class="btn btn-r" onclick="simulateAttack()">&#9888; Simular ataque</button>
+          <button class="btn btn-g" onclick="deployHoneypot()">+ Desplegar señuelo</button>
+          <button class="btn btn-b" onclick="runScan()">&#128269; Escanear red</button>
+          <button class="btn btn-p" onclick="nav('cia')">&#128737; Ver CIA</button>
+          <div style="margin-left:auto;font-size:11px;color:var(--muted)" class="mono" id="uptime-ctr">Sistema activo: 00:00:00</div>
+        </div>
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-hdr"><div class="panel-title"><span class="dot dot-o"></span>Señuelos inteligentes</div></div>
+            <div class="hp-grid" id="hp-grid">
+              <div class="hp-card safe" onclick="inspectHP(0,'FTP-TRAP')"><div class="hp-icon">&#128268;</div><div class="hp-name">FTP-TRAP</div><div class="hp-st">MONITOREANDO</div></div>
+              <div class="hp-card active" onclick="inspectHP(1,'SSH-DECOY')"><div class="hp-icon">&#128421;</div><div class="hp-name">SSH-DECOY</div><div class="hp-st">ACTIVO</div></div>
+              <div class="hp-card safe" onclick="inspectHP(2,'HTTP-LURE')"><div class="hp-icon">&#127760;</div><div class="hp-name">HTTP-LURE</div><div class="hp-st">MONITOREANDO</div></div>
+              <div class="hp-card compromised" onclick="inspectHP(3,'DB-HONEY')"><div class="hp-icon">&#128190;</div><div class="hp-name">DB-HONEY</div><div class="hp-st">&#9888; TRAMPA!</div></div>
+              <div class="hp-card active" onclick="inspectHP(4,'SMTP-BAIT')"><div class="hp-icon">&#128225;</div><div class="hp-name">SMTP-BAIT</div><div class="hp-st">ACTIVO</div></div>
+              <div class="hp-card safe" onclick="inspectHP(5,'API-FAKE')"><div class="hp-icon">&#128203;</div><div class="hp-name">API-FAKE</div><div class="hp-st">MONITOREANDO</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-hdr"><div class="panel-title"><span class="dot dot-r"></span>Amenazas recientes</div></div>
+            <div class="threat-list" id="threat-list">
+              <div class="threat-item high"><span class="tbadge b-high">CRÍTICO</span><div class="tinfo"><div class="ttype">Ransomware WannaCrypt.v4</div><div class="tsrc">185.220.101.47 → DB-HONEY</div></div><span class="ttime">00:12</span><span class="taction act-trap">ATRAPADO</span></div>
+              <div class="threat-item med"><span class="tbadge b-med">MEDIO</span><div class="tinfo"><div class="ttype">Brute Force SSH</div><div class="tsrc">91.108.4.18 → SSH-DECOY</div></div><span class="ttime">01:34</span><span class="taction act-block">BLOQUEADO</span></div>
+              <div class="threat-item low"><span class="tbadge b-low">BAJO</span><div class="tinfo"><div class="ttype">Escaneo de puertos</div><div class="tsrc">45.129.56.201 → FTP-TRAP</div></div><span class="ttime">02:11</span><span class="taction act-mon">MONITOREO</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-hdr"><div class="panel-title"><span class="dot dot-g"></span>Terminal del sistema</div></div>
+          <div class="terminal" id="terminal">
+            <div class="tl"><span class="tmuted">[00:00:01] </span><span class="tok">[OK]</span> HoneyShield AI v1.0 inicializado correctamente</div>
+            <div class="tl"><span class="tmuted">[00:00:02] </span><span class="tinfo">[INFO]</span> 6 señuelos desplegados en red perimetral</div>
+            <div class="tl"><span class="tmuted">[00:00:08] </span><span class="twarn">[WARN]</span> Actividad sospechosa detectada en DB-HONEY</div>
+            <div class="tl"><span class="tmuted">[00:00:12] </span><span class="terr">[TRAP]</span> Malware capturado: WannaCrypt.v4 — sandbox activado</div>
+            <div class="tl"><span class="tmuted">[00:00:15] </span><span class="tok">[AI]</span> Reglas de firewall actualizadas automáticamente</div>
+            <div class="tl" id="cur-line"><span class="tmuted" id="cur-ts">[00:00:16] </span><span class="tinfo">honeyshield@ai:~$ </span><span class="tcursor"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HONEYPOTS PAGE -->
+      <div class="page" id="page-honeypots">
+        <div class="page-header"><div class="page-title">Gestión de señuelos</div><div class="page-sub">Configuración y estado de los honeypots inteligentes</div></div>
+        <div class="ctrl-row"><button class="btn btn-g" onclick="deployHoneypot()">+ Nuevo señuelo</button><button class="btn btn-b" onclick="resetHoneypots()">&#8635; Reiniciar todos</button></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="hp-full-grid">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <!-- THREATS PAGE -->
+      <div class="page" id="page-threats">
+        <div class="page-header"><div class="page-title">Centro de amenazas</div><div class="page-sub">Análisis en tiempo real de vectores de ataque detectados</div></div>
+        <div class="ctrl-row">
+          <button class="btn btn-r" onclick="simulateAttack()">Simular ataque</button>
+          <button class="btn btn-b" onclick="clearThreats()">Limpiar registro</button>
+        </div>
+        <div class="panel"><div class="panel-hdr"><div class="panel-title"><span class="dot dot-r"></span>Feed completo de amenazas</div></div>
+        <div class="threat-list" style="max-height:500px" id="threat-full"></div></div>
+      </div>
+
+      <!-- CIA PAGE -->
+      <div class="page" id="page-cia">
+        <div class="page-header"><div class="page-title">Protección CIA</div><div class="page-sub">Confidencialidad · Integridad · Disponibilidad</div></div>
+        <div class="cia-row">
+          <div class="cia-card"><div class="cia-icon">&#128274;</div><div class="cia-title" style="color:var(--accent)">Confidencialidad</div><div class="cia-pct c-blue" id="cia-c">98%</div><div class="bar"><div class="bar-fill fill-b" id="bar-c" style="width:98%"></div></div><p style="font-size:12px;color:var(--muted);margin-top:10px">Datos cifrados con AES-256. Sin filtraciones detectadas.</p></div>
+          <div class="cia-card"><div class="cia-icon">&#9878;</div><div class="cia-title" style="color:var(--warn)">Integridad</div><div class="cia-pct c-orange" id="cia-i">94%</div><div class="bar"><div class="bar-fill fill-o" id="bar-i" style="width:94%"></div></div><p style="font-size:12px;color:var(--muted);margin-top:10px">Hashes verificados. 0 modificaciones no autorizadas.</p></div>
+          <div class="cia-card"><div class="cia-icon">&#9889;</div><div class="cia-title" style="color:var(--accent2)">Disponibilidad</div><div class="cia-pct c-green" id="cia-a">99%</div><div class="bar"><div class="bar-fill fill-g" id="bar-a" style="width:99%"></div></div><p style="font-size:12px;color:var(--muted);margin-top:10px">Uptime verificado. Señuelos absorben tráfico malicioso.</p></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:14px"><span class="dot dot-g"></span>Mecanismos de defensa activos</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:var(--panel);border-radius:8px;padding:14px;border:1px solid var(--border)"><div style="color:var(--accent);font-weight:600;margin-bottom:6px">&#128274; Cifrado en tránsito</div><div style="font-size:12px;color:var(--muted)">TLS 1.3 + AES-256-GCM en todas las conexiones</div></div>
+            <div style="background:var(--panel);border-radius:8px;padding:14px;border:1px solid var(--border)"><div style="color:var(--accent2);font-weight:600;margin-bottom:6px">&#9878; Verificación de hashes</div><div style="font-size:12px;color:var(--muted)">SHA-3 para archivos críticos cada 60 segundos</div></div>
+            <div style="background:var(--panel);border-radius:8px;padding:14px;border:1px solid var(--border)"><div style="color:var(--warn);font-weight:600;margin-bottom:6px">&#128268; Señuelos adaptativos</div><div style="font-size:12px;color:var(--muted)">Honeypots que aprenden del comportamiento del atacante</div></div>
+            <div style="background:var(--panel);border-radius:8px;padding:14px;border:1px solid var(--border)"><div style="color:#a78bfa;font-weight:600;margin-bottom:6px">&#9729; Bloqueo automático</div><div style="font-size:12px;color:var(--muted)">Reglas de firewall generadas por IA en tiempo real</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOGS PAGE -->
+      <div class="page" id="page-logs">
+        <div class="page-header"><div class="page-title">Registros del sistema</div><div class="page-sub">Historial completo de eventos de seguridad</div></div>
+        <div class="log-filters">
+          <button class="filter-btn active" onclick="filterLog('all',this)">Todos</button>
+          <button class="filter-btn" onclick="filterLog('trap',this)">Atrapados</button>
+          <button class="filter-btn" onclick="filterLog('block',this)">Bloqueados</button>
+          <button class="filter-btn" onclick="filterLog('warn',this)">Alertas</button>
+        </div>
+        <div class="panel">
+          <table class="log-table">
+            <thead><tr><th>Timestamp</th><th>Tipo</th><th>Origen</th><th>Señuelo</th><th>Severidad</th><th>Acción</th></tr></thead>
+            <tbody id="log-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SETTINGS PAGE -->
+      <div class="page" id="page-settings">
+        <div class="page-header"><div class="page-title">Configuración</div><div class="page-sub">Personaliza el comportamiento de HoneyShield AI</div></div>
+        <div class="settings-grid">
+          <div class="setting-card"><div class="setting-title">Señuelos automáticos</div><div class="setting-desc">Despliega nuevos señuelos automáticamente al detectar patrones de ataque</div><div class="toggle"><span class="toggle-label">Activado</span><div class="switch on" onclick="this.classList.toggle('on')"></div></div></div>
+          <div class="setting-card"><div class="setting-title">Notificaciones de escritorio</div><div class="setting-desc">Recibe alertas del sistema operativo cuando se detecte una amenaza crítica</div><div class="toggle"><span class="toggle-label">Activado</span><div class="switch on" onclick="this.classList.toggle('on')"></div></div></div>
+          <div class="setting-card"><div class="setting-title">Bloqueo automático de IPs</div><div class="setting-desc">Bloquea automáticamente IPs identificadas como maliciosas en el firewall</div><div class="toggle"><span class="toggle-label">Activado</span><div class="switch on" onclick="this.classList.toggle('on')"></div></div></div>
+          <div class="setting-card"><div class="setting-title">Sandbox de malware</div><div class="setting-desc">Ejecuta el malware capturado en un entorno aislado para análisis</div><div class="toggle"><span class="toggle-label">Activado</span><div class="switch on" onclick="this.classList.toggle('on')"></div></div></div>
+          <div class="setting-card"><div class="setting-title">Nivel de verbosidad</div><div class="setting-desc">Controla el nivel de detalle en los registros del sistema</div><select class="select" style="margin-top:10px"><option>DEBUG</option><option selected>INFO</option><option>WARNING</option><option>ERROR</option></select></div>
+          <div class="setting-card"><div class="setting-title">Intervalo de escaneo</div><div class="setting-desc">Frecuencia de escaneo proactivo de la red</div><select class="select" style="margin-top:10px"><option>Cada 10 segundos</option><option selected>Cada 30 segundos</option><option>Cada 60 segundos</option><option>Cada 5 minutos</option></select></div>
+        </div>
+      </div>
+
+      <!-- ABOUT PAGE -->
+      <div class="page" id="page-about">
+        <div class="about-hero">
+          <div class="about-logo">&#9670;</div>
+          <div class="about-name">HONEYSHIELD AI</div>
+          <div class="about-ver">Versión 1.0.0 · Build 2024.01</div>
+          <div class="about-desc">Sistema de ciberseguridad avanzado con señuelos inteligentes que atrapa malware, bloquea ataques y protege la integridad, seguridad y disponibilidad de tu infraestructura.</div>
+        </div>
+        <div class="features-grid">
+          <div class="feature-card"><div class="feat-icon">&#128268;</div><div class="feat-title">Señuelos adaptativos</div><div class="feat-desc">Honeypots que aprenden del comportamiento del atacante y se reconfiguran automáticamente para maximizar capturas.</div></div>
+          <div class="feature-card"><div class="feat-icon">&#129504;</div><div class="feat-title">IA de detección</div><div class="feat-desc">Modelo de machine learning que identifica TTPs (tácticas, técnicas y procedimientos) de actores maliciosos.</div></div>
+          <div class="feature-card"><div class="feat-icon">&#128737;</div><div class="feat-title">Protección CIA</div><div class="feat-desc">Monitoreo continuo de Confidencialidad, Integridad y Disponibilidad con respuesta automática ante incidentes.</div></div>
+          <div class="feature-card"><div class="feat-icon">&#9762;</div><div class="feat-title">Sandbox de malware</div><div class="feat-desc">Entorno aislado donde el malware capturado es analizado sin riesgo para el sistema productivo.</div></div>
+          <div class="feature-card"><div class="feat-icon">&#128274;</div><div class="feat-title">Cifrado AES-256</div><div class="feat-desc">Toda la comunicación y almacenamiento de datos sensibles está protegido con cifrado militar.</div></div>
+          <div class="feature-card"><div class="feat-icon">&#9889;</div><div class="feat-title">Respuesta en tiempo real</div><div class="feat-desc">Reglas de firewall generadas y aplicadas en milisegundos ante nuevas amenazas detectadas.</div></div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /body -->
+</div><!-- /app -->
+
+<script>
+let trapped=0,blocked=0,activeThreats=3,honeypots=6,seconds=16,startTime=Date.now();
+const allThreats=[];
+const logEntries=[];
+
+const threatTypes=[
+  {name:"Ransomware WannaCrypt",sev:"high",target:"DB-HONEY",action:"ATRAPADO",cls:"act-trap",badge:"b-high",lbl:"CRÍTICO"},
+  {name:"DDoS UDP Flood",sev:"high",target:"HTTP-LURE",action:"BLOQUEADO",cls:"act-block",badge:"b-high",lbl:"CRÍTICO"},
+  {name:"XSS Exploit",sev:"med",target:"API-FAKE",action:"BLOQUEADO",cls:"act-block",badge:"b-med",lbl:"MEDIO"},
+  {name:"Phishing Bot",sev:"med",target:"SMTP-BAIT",action:"ATRAPADO",cls:"act-trap",badge:"b-med",lbl:"MEDIO"},
+  {name:"Port Scan",sev:"low",target:"FTP-TRAP",action:"MONITOREO",cls:"act-mon",badge:"b-low",lbl:"BAJO"},
+  {name:"Rootkit Dropper",sev:"high",target:"DB-HONEY",action:"ATRAPADO",cls:"act-trap",badge:"b-high",lbl:"CRÍTICO"},
+  {name:"SQL Injection",sev:"high",target:"DB-HONEY",action:"ATRAPADO",cls:"act-trap",badge:"b-high",lbl:"CRÍTICO"},
+  {name:"Brute Force SSH",sev:"med",target:"SSH-DECOY",action:"BLOQUEADO",cls:"act-block",badge:"b-med",lbl:"MEDIO"},
+  {name:"Zero-day Exploit",sev:"high",target:"HTTP-LURE",action:"BLOQUEADO",cls:"act-block",badge:"b-high",lbl:"CRÍTICO"},
+];
+
+const termMsgs=[
+  ()=>`<span class="twarn">[WARN]</span> Nuevo vector de ataque detectado — analizando firma...`,
+  ()=>`<span class="terr">[TRAP]</span> Agente malicioso capturado en señuelo — activando sandbox...`,
+  ()=>`<span class="tok">[AI]</span> Modelo de comportamiento actualizado con nuevas TTPs`,
+  ()=>`<span class="tok">[OK]</span> Reglas de correlación reforzadas — 0 falsos positivos`,
+  ()=>`<span class="tinfo">[INFO]</span> Señuelo adaptativo reconfigurado como nueva trampa`,
+  ()=>`<span class="terr">[BLOCK]</span> IP bloqueada en toda la red automáticamente`,
+];
+
+function pad(n){return String(n).padStart(2,'0')}
+function randIP(){return `${Math.floor(Math.random()*200+50)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`}
+function ts(){return `${pad(Math.floor(seconds/60))}:${pad(seconds%60)}`}
+
+function nav(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.toLowerCase().includes(page.slice(0,4)))n.classList.add('active')});
+  if(page==='logs')renderLogs();
+  if(page==='honeypots')renderHPFull();
+  if(page==='threats')renderThreatFull();
+}
+
+function updateStats(){
+  document.getElementById('s-trapped').textContent=trapped;
+  document.getElementById('s-blocked').textContent=blocked;
+  document.getElementById('s-active').textContent=activeThreats;
+  document.getElementById('s-hp').textContent=honeypots;
+}
+
+function addThreatItem(t,container){
+  const ip=randIP();
+  const div=document.createElement('div');
+  div.className=`threat-item ${t.sev}`;
+  div.dataset.action=t.action.toLowerCase();
+  div.innerHTML=`<span class="tbadge ${t.badge}">${t.lbl}</span><div class="tinfo"><div class="ttype">${t.name}</div><div class="tsrc">${ip} → ${t.target}</div></div><span class="ttime">${ts()}</span><span class="taction ${t.cls}">${t.action}</span>`;
+  container.prepend(div);
+  if(container.children.length>20)container.lastChild.remove();
+  return {ip,t};
+}
+
+function addTermLine(msg){
+  const term=document.getElementById('terminal');
+  const cur=document.getElementById('cur-line');
+  const d=document.createElement('div');
+  d.className='tl';
+  d.innerHTML=`<span class="tmuted">[00:${ts()}] </span>${msg}`;
+  term.insertBefore(d,cur);
+  document.getElementById('cur-ts').textContent=`[00:${pad(Math.floor((seconds+1)/60))}:${pad((seconds+1)%60)}] `;
+  term.scrollTop=term.scrollHeight;
+}
+
+function simulateAttack(){
+  const t={...threatTypes[Math.floor(Math.random()*threatTypes.length)]};
+  const ip=randIP();
+  if(t.action==='ATRAPADO'){trapped++;if(activeThreats>0)activeThreats--;}
+  else if(t.action==='BLOQUEADO'){blocked++;if(activeThreats>0)activeThreats--;}
+  else{activeThreats++;}
+  
+  const tl=document.getElementById('threat-list');
+  const div=document.createElement('div');
+  div.className=`threat-item ${t.sev}`;
+  div.innerHTML=`<span class="tbadge ${t.badge}">${t.lbl}</span><div class="tinfo"><div class="ttype">${t.name}</div><div class="tsrc">${ip} → ${t.target}</div></div><span class="ttime">${ts()}</span><span class="taction ${t.cls}">${t.action}</span>`;
+  tl.prepend(div);
+  if(tl.children.length>8)tl.lastChild.remove();
+
+  addTermLine(termMsgs[Math.floor(Math.random()*termMsgs.length)]());
+  logEntries.unshift({time:ts(),type:t.name,src:ip,target:t.target,sev:t.lbl,action:t.action});
+  allThreats.unshift({...t,ip,time:ts()});
+  seconds++;
+  updateStats();
+  updateCIA();
+
+  if(window.electronAPI && t.sev==='high'){
+    window.electronAPI.notify('HoneyShield AI — Amenaza crítica',`${t.name} detectado y ${t.action.toLowerCase()} desde ${ip}`);
+  }
+}
+
+function deployHoneypot(){
+  honeypots++;
+  const names=['RDP-TRAP','DNS-LURE','VNC-BAIT','LDAP-HONEY','REDIS-TRAP','MONGO-BAIT'];
+  const name=names[honeypots%names.length];
+  addTermLine(`<span class="tok">[DEPLOY]</span> Señuelo #${honeypots} <span class="tinfo">${name}</span> desplegado en red 10.0.0.${honeypots}`);
+  updateStats();
+  if(window.electronAPI) window.electronAPI.notify('Señuelo desplegado',`${name} activo en subred perimetral`);
+  seconds++;
+}
+
+function runScan(){
+  addTermLine(`<span class="tinfo">[SCAN]</span> Iniciando escaneo de red — ${honeypots} señuelos verificados...`);
+  setTimeout(()=>addTermLine(`<span class="tok">[SCAN]</span> Escaneo completo — sin vulnerabilidades detectadas en host`),1500);
+  seconds+=2;
+}
+
+function resetHoneypots(){
+  addTermLine(`<span class="tok">[RESET]</span> Reiniciando todos los señuelos...`);
+  seconds++;
+}
+
+function clearThreats(){
+  document.getElementById('threat-list').innerHTML='';
+  document.getElementById('threat-full').innerHTML='';
+}
+
+function inspectHP(idx,name){
+  nav('honeypots');
+  addTermLine(`<span class="tinfo">[INSPECT]</span> Inspeccionando señuelo <span class="tinfo">${name}</span>...`);
+  seconds++;
+}
+
+function updateCIA(){
+  const c=Math.max(85,100-Math.floor(Math.random()*8));
+  const i=Math.max(80,100-Math.floor(Math.random()*12));
+  const a=Math.max(90,100-Math.floor(Math.random()*6));
+  ['c','i','a'].forEach((k,idx)=>{
+    const v=[c,i,a][idx];
+    const el=document.getElementById('cia-'+k);
+    const bar=document.getElementById('bar-'+k);
+    if(el){el.textContent=v+'%';bar.style.width=v+'%';}
+  });
+}
+
+function renderLogs(filter='all'){
+  const body=document.getElementById('log-body');
+  body.innerHTML='';
+  const filtered=filter==='all'?logEntries:logEntries.filter(e=>{
+    if(filter==='trap')return e.action==='ATRAPADO';
+    if(filter==='block')return e.action==='BLOQUEADO';
+    if(filter==='warn')return e.sev==='CRÍTICO';
+    return true;
+  });
+  filtered.forEach(e=>{
+    const tr=document.createElement('tr');
+    const color=e.sev==='CRÍTICO'?'var(--danger)':e.sev==='MEDIO'?'var(--warn)':'var(--accent)';
+    tr.innerHTML=`<td>${e.time}</td><td>${e.type}</td><td>${e.src}</td><td>${e.target}</td><td style="color:${color}">${e.sev}</td><td>${e.action}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function filterLog(f,btn){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLogs(f);
+}
+
+function renderThreatFull(){
+  const c=document.getElementById('threat-full');
+  c.innerHTML='';
+  allThreats.forEach(t=>{
+    const div=document.createElement('div');
+    div.className=`threat-item ${t.sev}`;
+    div.innerHTML=`<span class="tbadge ${t.badge}">${t.lbl}</span><div class="tinfo"><div class="ttype">${t.name}</div><div class="tsrc">${t.ip} → ${t.target}</div></div><span class="ttime">${t.time}</span><span class="taction ${t.cls}">${t.action}</span>`;
+    c.appendChild(div);
+  });
+}
+
+const hpData=[
+  {icon:'&#128268;',name:'FTP-TRAP',cls:'safe',st:'MONITOREANDO',port:21,conn:0,trapped:0},
+  {icon:'&#128421;',name:'SSH-DECOY',cls:'active',st:'ACTIVO',port:22,conn:847,trapped:0},
+  {icon:'&#127760;',name:'HTTP-LURE',cls:'safe',st:'MONITOREANDO',port:80,conn:12,trapped:0},
+  {icon:'&#128190;',name:'DB-HONEY',cls:'compromised',st:'TRAMPA ACTIVA',port:3306,conn:1,trapped:1},
+  {icon:'&#128225;',name:'SMTP-BAIT',cls:'active',st:'ACTIVO',port:25,conn:234,trapped:0},
+  {icon:'&#128203;',name:'API-FAKE',cls:'safe',st:'MONITOREANDO',port:8080,conn:45,trapped:0},
+];
+
+function renderHPFull(){
+  const g=document.getElementById('hp-full-grid');
+  g.innerHTML='';
+  hpData.forEach(hp=>{
+    const div=document.createElement('div');
+    div.className='panel';
+    div.innerHTML=`<div style="text-align:center;margin-bottom:12px"><div style="font-size:32px">${hp.icon}</div><div style="font-size:16px;font-weight:700;color:var(--accent);margin-top:6px">${hp.name}</div><div style="font-size:11px;margin-top:4px;font-weight:700;color:${hp.cls==='compromised'?'var(--danger)':hp.cls==='active'?'var(--warn)':'var(--accent2)'}">${hp.st}</div></div><div style="display:flex;flex-direction:column;gap:8px;font-size:12px"><div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Puerto</span><span class="mono">${hp.port}</span></div><div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Conexiones</span><span class="mono">${hp.conn}</span></div><div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Capturados</span><span class="mono" style="color:var(--accent2)">${hp.trapped}</span></div></div>`;
+    g.appendChild(div);
+  });
+}
+
+// Clock & uptime
+function tick(){
+  const now=new Date();
+  const p=n=>String(n).padStart(2,'0');
+  document.getElementById('clock').textContent=`${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+  document.getElementById('dash-time').textContent=`Última actualización: ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  document.getElementById('uptime-ctr').textContent=`Sistema activo: ${p(Math.floor(elapsed/3600))}:${p(Math.floor(elapsed/60)%60)}:${p(elapsed%60)}`;
+}
+
+setInterval(tick,1000);
+setInterval(()=>{if(Math.random()>.55)simulateAttack();},4500);
+tick();
+updateStats();
+
+if(window.electronAPI){
+  window.electronAPI.onNav(page=>nav(page));
+}
+</script>
+</body>
+</html>
